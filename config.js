@@ -1,4 +1,7 @@
 export const config = {
-  "endpoint": "",
-  "baseUrl": "https://api.amiami.com/api/v1.0/"
+  baseUrl: "https://api.amiami.com/api/v1.0/",
+  endpoints:{
+    search:"items",
+    details:"item"
+  }
 }

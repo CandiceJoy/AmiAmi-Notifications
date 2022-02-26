@@ -5,70 +5,90 @@ const myCustomLevels = {
 	levels: {
 		fatal: 0,
 		error: 1,
-		warn:  2,
-		info:  3,
+		warn : 2,
+		info : 3,
 		debug: 4,
-		trace: 5
+		trace: 5,
+		data : 6
 	},
 	colors: {
 		fatal: 'magenta',
 		error: 'red',
-		warn:  'yellow',
-		info:  'blue',
+		warn : 'yellow',
+		info : 'blue',
 		debug: 'cyan',
-		trace: 'green'
+		trace: 'green',
+		data : 'orange'
 	}
 };
 
-class CustomTransport extends winston.transports.Console
+let padLength = 0;
+
+for(const level in myCustomLevels.levels)
 {
-	constructor( opts )
+	if(level.length > padLength)
 	{
-		super( opts );
-
-		//
-		// Consume any custom options here. e.g.:
-		// - Connection information for databases
-		// - Authentication information for APIs (e.g. loggly, papertrail,
-		//   logentries, etc.).
-		//
-	}
-
-	log( info, callback )
-	{
-		super.log( info, () =>
-		{
-			const level = info.level.toLowerCase();
-
-			if( level.includes( "fatal" ) && !level.includes("not") )
-			{
-				process.exit( 1 );
-			}
-			else
-			{
-				callback();
-			}
-		} );
+		padLength = level.length;
 	}
 }
 
-const myformat = winston.format.combine(
-	winston.format.colorize(),
-	winston.format.timestamp(),
-	winston.format.align(),
-	winston.format.splat(),
-	winston.format.printf( info => `${ info.timestamp } ${ info.level }: ${ info.message }` )
-);
-winston.addColors( myCustomLevels.colors );
+function padLevel(level)
+{
+	const matches = level.match(new RegExp("(?:\\x1B\\[\\d\\dm)?(\\w+)\\s*(?:\\x1B\\[\\d\\dm)?", ""));
+	const match = matches[1];
+	let levelCopy = match;
 
-const transport = new CustomTransport( {
-	                                       format: myformat,
-	                                       level:  "trace"
-                                       } );
+	while(levelCopy.length < padLength)
+	{
+		levelCopy = " " + levelCopy;
+	}
 
-export const log = winston.createLogger( {
-	                                         levels:            myCustomLevels.levels,
-	                                         transports:        [transport],
-	                                         exceptionHandlers: [transport],
-	                                         exitOnError:       true
-                                         } );
+	return level.replace(match, levelCopy);
+}
+
+const myformat = winston.format.combine(winston.format.timestamp({format: "YYYY-MM-DD hh:mm:ss.SSS A"}),
+                                        winston.format.align(), winston.format.splat(), winston.format.prettyPrint(),
+                                        winston.format.printf(
+	                                        info => `[${info.timestamp}] ${padLevel(info.level)}: ${info.message}`));
+
+const myformatWithColors = winston.format.combine(winston.format.colorize(), myformat);
+
+winston.addColors(myCustomLevels.colors);
+
+const transports = [new winston.transports.Console({
+	                                                   format: myformatWithColors,
+	                                                   level : "info"
+                                                   }), new winston.transports.File({
+	                                                                                   options : {flags: 'w'},
+	                                                                                   format  : myformat,
+	                                                                                   filename: 'trace.log',
+	                                                                                   level   : 'trace'
+                                                                                   }), new winston.transports.File({
+	                                                                                                                   options : {flags: 'w'},
+	                                                                                                                   format  : myformat,
+	                                                                                                                   filename: 'data.log',
+	                                                                                                                   level   : 'data'
+                                                                                                                   }),
+                    new winston.transports.File({
+	                                                options : {flags: 'w'},
+	                                                format  : myformat,
+	                                                filename: 'debug.log',
+	                                                level   : 'debug'
+                                                })];
+
+export const log = winston.createLogger({
+	                                        levels           : myCustomLevels.levels,
+	                                        transports       : transports,
+	                                        exceptionHandlers: transports,
+	                                        exitOnError      : true
+                                        });
+
+export function logTest(logger = log)
+{
+	logger.trace("This is a trace line.");
+	logger.debug("This is a debug line.");
+	logger.info("This is an info line.");
+	logger.warn("This is a warning line.");
+	logger.error("This is an error line.");
+	logger.fatal("This is a fatal error line.");
+}
