@@ -68,19 +68,16 @@ const transports = [new winston.transports.Console({
 	                                                                                                                   format  : myformat,
 	                                                                                                                   filename: 'data.log',
 	                                                                                                                   level   : 'data'
-                                                                                                                   }),
-                    new winston.transports.File({
-	                                                options : {flags: 'w'},
-	                                                format  : myformat,
-	                                                filename: 'debug.log',
-	                                                level   : 'debug'
-                                                })];
+                                                                                                                   })];
 
 export const log = winston.createLogger({
 	                                        levels           : myCustomLevels.levels,
 	                                        transports       : transports,
+	                                        handleExceptions : true,
+	                                        handleRejections : true,
 	                                        exceptionHandlers: transports,
-	                                        exitOnError      : true
+	                                        exitOnError      : true,
+	                                        rejectionHandlers: transports
                                         });
 
 export function logTest(logger = log)

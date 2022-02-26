@@ -3,5 +3,6 @@ export const config = {
   endpoints:{
     search:"items",
     details:"item"
-  }
+  },
+  mfcUsername:"CandiceJoy"
 }
