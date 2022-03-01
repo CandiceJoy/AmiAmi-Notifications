@@ -1,5 +1,4 @@
-import * as util from "util";
-import winston   from "winston";
+import winston from "winston";
 
 const myCustomLevels = {
 	levels: {
